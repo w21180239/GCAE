@@ -1,6 +1,7 @@
 import gensim
 import numpy as np
 import linecache
+import os
 
 
 def load_w2v_embedding(word_list, uniform_scale, dimension_size):
@@ -18,21 +19,24 @@ def load_w2v_embedding(word_list, uniform_scale, dimension_size):
 
 
 def load_glove_embedding(word_list, uniform_scale, dimension_size):
-    glove_words = []
-    with open('../../../code/embedding/glove_words.txt', 'r') as fopen:
-        for line in fopen:
-            glove_words.append(line.strip())
-    word2offset = {w: i for i, w in enumerate(glove_words)}
-    word_vectors = []
-    for word in word_list:
-        if word in word2offset:
-            line = linecache.getline('../../../code/embedding/glove.840B.300d.txt', word2offset[word]+1)
-            assert(word == line[:line.find(' ')].strip())
-            word_vectors.append(np.fromstring(line[line.find(' '):].strip(), sep=' ', dtype=np.float32))
-        elif word == '<pad>':
-            word_vectors.append(np.zeros(dimension_size, dtype=np.float32))
-        else:
-            word_vectors.append(np.random.uniform(-uniform_scale, uniform_scale, dimension_size))
+    if os.path.exists('glove_embedding.npy'):
+        word_vectors = np.load('glove_embedding.npy')
+        print('Successfully load saved embedding!')
+    else:
+        glove_words = {}
+        with open('glove.6B.300d.txt', 'r',encoding='utf-8') as fopen:
+            for line in fopen:
+                tmp =line.split(' ')
+                glove_words[tmp[0]] = np.array(tmp[1:])
+        word_vectors = []
+        for word in word_list:
+            if word in glove_words:
+                word_vectors.append(glove_words[word])
+            elif word == '<pad>':
+                word_vectors.append(np.zeros(dimension_size, dtype=np.float32))
+            else:
+                word_vectors.append(np.random.uniform(-uniform_scale, uniform_scale, dimension_size))
+        np.save('glove_embedding.npy',np.array(word_vectors))
     return word_vectors
 
 

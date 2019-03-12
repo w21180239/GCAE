@@ -149,15 +149,17 @@ class SemEval(data.Dataset):
         from collections import defaultdict
         total_counter = defaultdict(int)
         mixed_counter = defaultdict(int)
-
+        count=0
         for e in input_data:
-            for aspect, sentiment in e['aspect_sentiment']:
-                unrolled.append({'sentence': e['sentence'], 'aspect': aspect, 'sentiment': sentiment})
-                if len(e['aspect_sentiment']) and len(set(map(lambda x: x[1], e['aspect_sentiment']))) > 1:
-                    mixed.append(
-                        {'sentence': e['sentence'], 'aspect': aspect, 'sentiment': sentiment})
-                    mixed_counter[sentiment] += 1
-                total_counter[sentiment] += 1
+            aspect = e['aspect']
+            sentiment = e['sentiment']
+            unrolled.append({'sentence': e['sentence'], 'aspect': aspect, 'sentiment': sentiment,'id':count})
+            if len(e) and len(set(map(lambda x: x[1], e))) > 1:
+                mixed.append(
+                    {'sentence': e['sentence'], 'aspect': aspect, 'sentiment': sentiment})
+                mixed_counter[sentiment] += 1
+            total_counter[sentiment] += 1
+            count+=1
         print("total")
         print(total_counter)
         print("hard")

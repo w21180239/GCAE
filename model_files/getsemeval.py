@@ -2,7 +2,7 @@ from copy import copy
 import argparse
 from collections import defaultdict, Counter
 from lxml import etree
-from nltk.tokenize.moses import MosesTokenizer
+from mosestokenizer import MosesTokenizer
 import simplejson as json
 import codecs
 import random
@@ -26,6 +26,11 @@ laptop_test = {16: '../SemEval2016Task5/EN_LAPT_SB1_TEST_.xml.gold',
 ds_train = {'r': rest_train, 'l': laptop_train}
 ds_test = {'r': rest_test, 'l': laptop_test}
 ds_yelp = '../data/yelp/review.json'
+
+my_acsa_train = '../acsa-restaurant-2014/acsa_train.json'
+my_acsa_test = '../acsa-restaurant-2014/acsa_test.json'
+my_atsa_train = '../atsa-restaurant/atsa_train.json'
+my_atsa_test = '../atsa-restaurant/atsa_test.json'
 
 
 def filter_14(dataset):
@@ -213,94 +218,100 @@ def read_sentence1516_target(file_path,  max_offset_len=83):
 
 
 def get_semeval(years, aspects, rest_lap='r', use_attribute=False, dedup=False):
-    semeval16_train = read_sentence1516(ds_train[rest_lap][16])
-    semeval16_train = list(filter_by_aspect(semeval16_train, aspects, use_attribute))
-    print("# SemEval 16 Train: {0}".format(len(semeval16_train)))
 
-    semeval15_train = read_sentence1516(ds_train[rest_lap][15])
-    semeval15_train = list(filter_by_aspect(semeval15_train, aspects, use_attribute))
-    print("# SemEval 15 Train: {0}".format(len(semeval15_train)))
+    # semeval16_train = read_sentence1516(ds_train[rest_lap][16])
+    # semeval16_train = list(filter_by_aspect(semeval16_train, aspects, use_attribute))
+    # print("# SemEval 16 Train: {0}".format(len(semeval16_train)))
+    #
+    # semeval15_train = read_sentence1516(ds_train[rest_lap][15])
+    # semeval15_train = list(filter_by_aspect(semeval15_train, aspects, use_attribute))
+    # print("# SemEval 15 Train: {0}".format(len(semeval15_train)))
+    #
+    # if rest_lap == 'r':
+    #     semeval14_train = read_sentence14(ds_train[rest_lap][14])
+    #     if 14 in years and len(years) == 1:
+    #         # exp on rest [14], keep positive, negative, conflict, neutral
+    #         semeval14_train = list(semeval14_train)
+    #     else:
+    #         # exp on rest [14 + 16]. On the same aspect:
+    #         # rest [14]: conflict + neutral -> neutral
+    #         # rest [16]: #postive == #negative -> neutral
+    #         semeval14_train = list(filter_by_aspect(semeval14_train, aspects, use_attribute))
+    #     print("# SemEval 14 Train: {0}".format(len(semeval14_train)))
+    # else:
+    #     semeval14_train = []
+    #
+    # semeval_train = []
+    # sentences = []
+    # train_total = []
+    # if 14 in years:
+    #     train_total += semeval14_train
+    # if 15 in years:
+    #     train_total += semeval15_train
+    # if 16 in years:
+    #     train_total += semeval16_train
+    #
+    # if dedup:
+    #     dup = 0
+    #     for e in train_total:
+    #         s = e['sentence'].strip()
+    #         e['sentence'] = s
+    #         if s not in sentences:
+    #             semeval_train.append(e)
+    #             sentences.append(s)
+    #         else:
+    #             dup += 1
+    # else:
+    #     dup = 0
+    #     semeval_train = train_total
+    semeval_train = json.JSONDecoder().decode(open(my_acsa_train).read())
+    hh = json.JSONDecoder().decode(open('../acsa-restaurant-large/acsa_train.json').read())
 
-    if rest_lap == 'r':
-        semeval14_train = read_sentence14(ds_train[rest_lap][14])
-        if 14 in years and len(years) == 1:
-            # exp on rest [14], keep positive, negative, conflict, neutral
-            semeval14_train = list(semeval14_train)
-        else:
-            # exp on rest [14 + 16]. On the same aspect:
-            # rest [14]: conflict + neutral -> neutral
-            # rest [16]: #postive == #negative -> neutral
-            semeval14_train = list(filter_by_aspect(semeval14_train, aspects, use_attribute))
-        print("# SemEval 14 Train: {0}".format(len(semeval14_train)))
-    else:
-        semeval14_train = []
-
-    semeval_train = []
-    sentences = []
-    train_total = []
-    if 14 in years:
-        train_total += semeval14_train
-    if 15 in years:
-        train_total += semeval15_train
-    if 16 in years:
-        train_total += semeval16_train
-
-    if dedup:
-        dup = 0
-        for e in train_total:
-            s = e['sentence'].strip()
-            e['sentence'] = s
-            if s not in sentences:
-                semeval_train.append(e)
-                sentences.append(s)
-            else:
-                dup += 1
-    else:
-        dup = 0
-        semeval_train = train_total
+    dup=0
     print("# Train: {}\t# Dup: {}".format(len(semeval_train), dup))
 
-    semeval16_test = read_sentence1516(ds_test[rest_lap][16])
-    semeval16_test = list(filter_by_aspect(semeval16_test, aspects, use_attribute))
-    print("# SemEval 16 Test: {0}".format(len(semeval16_test)))
-
-    semeval15_test = read_sentence1516(ds_test[rest_lap][15])
-    semeval15_test = list(filter_by_aspect(semeval15_test, aspects, use_attribute))
-    print("# SemEval 15 Test: {0}".format(len(semeval15_test)))
-
-    if rest_lap == 'r':
-        semeval14_test = read_sentence14(ds_test[rest_lap][14])
-        if 14 in years and len(years) == 1:
-            # exp on rest [14], keep positive, negative, conflict, neutral
-            semeval14_test = list(semeval14_test)
-        else:
-            semeval14_test = list(filter_by_aspect(semeval14_test, aspects, use_attribute))
-            print("# SemEval 14 Test: {0}".format(len(semeval14_test)))
-    else:
-        semeval14_test = []
-
-    semeval_test = []
-    sentences = []
-    test_total = []
-    if 14 in years:
-        test_total += semeval14_test
-    if 15 in years:
-        test_total += semeval15_test
-    if 16 in years:
-        test_total += semeval16_test
-
-    dup = 0
-    if dedup:
-        for e in test_total:
-            s = e['sentence'].strip()
-            e['sentence'] = s
-            if s not in sentences:
-                semeval_test.append(e)
-                sentences.append(s)
-            else:
-                dup += 1
-    else:
-        semeval_test = test_total
+    # semeval16_test = read_sentence1516(ds_test[rest_lap][16])
+    # semeval16_test = list(filter_by_aspect(semeval16_test, aspects, use_attribute))
+    # print("# SemEval 16 Test: {0}".format(len(semeval16_test)))
+    #
+    # semeval15_test = read_sentence1516(ds_test[rest_lap][15])
+    # semeval15_test = list(filter_by_aspect(semeval15_test, aspects, use_attribute))
+    # print("# SemEval 15 Test: {0}".format(len(semeval15_test)))
+    #
+    # if rest_lap == 'r':
+    #     semeval14_test = read_sentence14(ds_test[rest_lap][14])
+    #     if 14 in years and len(years) == 1:
+    #         # exp on rest [14], keep positive, negative, conflict, neutral
+    #         semeval14_test = list(semeval14_test)
+    #     else:
+    #         semeval14_test = list(filter_by_aspect(semeval14_test, aspects, use_attribute))
+    #         print("# SemEval 14 Test: {0}".format(len(semeval14_test)))
+    # else:
+    #     semeval14_test = []
+    #
+    # semeval_test = []
+    # sentences = []
+    # test_total = []
+    # if 14 in years:
+    #     test_total += semeval14_test
+    # if 15 in years:
+    #     test_total += semeval15_test
+    # if 16 in years:
+    #     test_total += semeval16_test
+    #
+    # dup = 0
+    # if dedup:
+    #     for e in test_total:
+    #         s = e['sentence'].strip()
+    #         e['sentence'] = s
+    #         if s not in sentences:
+    #             semeval_test.append(e)
+    #             sentences.append(s)
+    #         else:
+    #             dup += 1
+    # else:
+    #     semeval_test = test_total
+    semeval_test = json.JSONDecoder().decode(open(my_acsa_test).read())
     print("# Test: {}\t # Dup: {}".format(len(semeval_test), dup))
 
     return semeval_train, semeval_test
@@ -312,8 +323,8 @@ def get_semeval_target(years, rest_lap='rest', dedup=False):
     #
     # semeval15_train = list(read_sentence1516(ds_train[rest_lap][15]))
     # print("# SemEval 15 Train: {0}".format(len(semeval15_train)))
-
-    semeval14_train = list(read_sentence14_target(ds_train[rest_lap][14]))
+    semeval14_train = json.JSONDecoder().decode(open(my_atsa_train).read())
+    # semeval14_train = list(read_sentence14_target(ds_train[rest_lap][14]))
     print("# SemEval 14 Train: {0}".format(len(semeval14_train)))
 
     semeval_train = []
@@ -347,8 +358,8 @@ def get_semeval_target(years, rest_lap='rest', dedup=False):
     #
     # semeval15_test = list(read_sentence1516_target("../data/SemEval2015/ABSA15_Restaurants_Test.xml"))
     # print("# SemEval 15 Test: {0}".format(len(semeval15_test)))
-
-    semeval14_test = list(read_sentence14_target(ds_test[rest_lap][14]))
+    semeval14_test = json.JSONDecoder().decode(open(my_atsa_test).read())
+    # semeval14_test = list(read_sentence14_target(ds_test[rest_lap][14]))
     print("# SemEval 14 Test: {0}".format(len(semeval14_test)))
 
     semeval_test = []
@@ -458,7 +469,7 @@ if __name__ == '__main__':
         unrolled_train, mixed_train = SemEval.unroll(train_data)
         unrolled_test, mixed_test = SemEval.unroll(test_data)
 
-        with open("acsa_train.json", "w") as fopen:
+        with open("atsa_train.json", "w") as fopen:
             fopen.write(json.dumps(unrolled_train))
         with open("acsa_test.json", "w") as fopen:
             fopen.write(json.dumps(unrolled_test))

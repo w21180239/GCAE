@@ -4,6 +4,7 @@ import datetime
 import torch
 import torchtext.data as data
 from w2v import *
+import simplejson as json
 
 from cnn_gate_aspect_model import CNN_Gate_Aspect_Text
 from cnn_gate_aspect_model_atsa import CNN_Gate_Aspect_Text as CNN_Gate_Aspect_Text_atsa
@@ -15,6 +16,9 @@ from getsemeval import get_semeval, get_semeval_target, read_yelp
 import cnn_train
 
 parser = argparse.ArgumentParser(description='CNN text classificer')
+f=open('../acsa-restaurant-2014/acsa_train.json')
+f = f.read()
+hh = json.JSONDecoder().decode(f)
 
 # learning
 parser.add_argument('-lr', type=float, default=0.01, help='initial learning rate [default: 0.001]')
@@ -53,6 +57,7 @@ parser.add_argument('-kernel-num', type=int, default=100, help='number of each k
 parser.add_argument('-kernel-sizes', type=str, default='3,4,5', help='comma-separated kernel size to use for convolution')
 parser.add_argument('-att_dsz', type=int, default=100, help='Attention dimension [default: 100]')
 parser.add_argument('-att_method', type=str, default='concat', help='Attention method [default: concat]')
+parser.add_argument('-matrix_size', type=int, default=6000, help='神秘操作')
 
 ## CNN_CNN
 parser.add_argument('-lambda_sm', type=float, default=1.0, help='Lambda weight for sentiment loss [default: 1.0]')
@@ -64,7 +69,7 @@ parser.add_argument('-lstm_bidirectional', type=bool, default=True, help='is LST
 parser.add_argument('-lstm_nlayers', type=int, default=1, help='the number of layers of LSTM [default: 1]')
 
 # device
-parser.add_argument('-device', type=int, default=-1, help='device to use for iterate data, -1 mean cpu [default: -1]')
+parser.add_argument('-device', type=int, default=0, help='device to use for iterate data, -1 mean cpu [default: -1]')
 parser.add_argument('-no-cuda', action='store_true', default=False, help='disable the gpu')
 
 # option
@@ -75,11 +80,14 @@ parser.add_argument('-target', type=str, default=None, help='predict the target 
 parser.add_argument('-test', action='store_true', default=False, help='train or test')
 parser.add_argument('-verbose', type=int, default=0)
 parser.add_argument('-trials', type=int, default=1, help='the number of trials')
+parser.add_argument('-gpu_id', type=int, default=1, help='the id of gpu')
+
 
 args = parser.parse_args()
 
 good_lap_attributes = ['battery#operation_performance', 'battery#quality', 'company#general', 'cpu#operation_performance', 'display#design_features', 'display#general', 'display#operation_performance', 'display#quality', 'display#usability', 'graphics#general', 'graphics#quality', 'hard_disc#design_features', 'hard_disc#quality', 'keyboard#design_features', 'keyboard#general', 'keyboard#operation_performance', 'keyboard#quality', 'keyboard#usability', 'laptop#connectivity', 'laptop#design_features', 'laptop#general', 'laptop#miscellaneous', 'laptop#operation_performance', 'laptop#portability', 'laptop#price', 'laptop#quality', 'laptop#usability', 'memory#design_features', 'motherboard#quality', 'mouse#design_features', 'mouse#general', 'mouse#operation_performance', 'mouse#quality', 'mouse#usability', 'multimedia_devices#general', 'multimedia_devices#operation_performance', 'multimedia_devices#quality', 'optical_drives#quality', 'os#general', 'os#operation_performance', 'os#usability', 'power_supply#quality', 'shipping#quality', 'software#design_features', 'software#general', 'software#miscellaneous', 'software#operation_performance', 'software#usability', 'support#price', 'support#quality']
 
+torch.cuda.set_device(args.gpu_id)
 
 def load_semeval_data(text_field, as_field, sm_field, years, aspects, **kargs):
     if not args.atsa:
@@ -134,7 +142,7 @@ if args.r_l == 'lap' and args.use_attribute:
     aspects = good_lap_attributes
 
 train_iter, test_iter, mixed_test_iter, predict_iter = load_semeval_data(text_field, as_field, sm_field, years, aspects,
-                                                          device=-1, repeat=False)
+                                                          device=args.device, repeat=False)
 
 print('# aspects: {}'.format(len(as_field.vocab.stoi)))
 print('# sentiments: {}'.format(len(sm_field.vocab.stoi)))
@@ -242,10 +250,11 @@ for t in range(n_trials):
 print(accuracy_trials)
 accuracy_trials = np.array(accuracy_trials)
 means = accuracy_trials.mean(0)
-stds = accuracy_trials.std(0)
-print('{:.2f}    {:.2f}'.format(means[0], stds[0]))
-print('{:.2f}    {:.2f}'.format(means[1], stds[1]))
-
+# stds = accuracy_trials.std(0)
+# print('{:.2f}    {:.2f}'.format(means[0], stds[0]))
+# print('{:.2f}    {:.2f}'.format(means[1], stds[1]))
+print('{:.2f}'.format(means[0]))
+print('{:.2f}'.format(means[1]))
 with open('time_stamps', 'w') as fopen:
     for trials in time_stamps_trials:
         for acc, _ in trials:

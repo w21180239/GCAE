@@ -3,7 +3,7 @@ import sys
 import time
 import torch
 import torch.nn.functional as F
-import numpy as np
+import torch.nn as nn
 
 
 def train(train_iter, dev_iter, mixed_test_iter, model, args, text_field, aspect_field, sm_field, predict_iter):
@@ -76,6 +76,7 @@ def eval(data_iter, model, args):
     model.eval()
     corrects, avg_loss = 0, 0
     loss = None
+
     for batch in data_iter:
         feature, aspect, target = batch.text, batch.aspect, batch.sentiment
         feature.data.t_()
