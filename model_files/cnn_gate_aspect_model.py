@@ -45,14 +45,15 @@ class CNN_Gate_Aspect_Text(nn.Module):
 
     def forward(self, feature, aspect):
         o = feature
+            # nn.Embedding
         index = [hash(str(o[i])) % self.matrix_size for i in range(len(o))]
         inside_matrix = torch.stack([self.matrix[hash(str(o[i])) % self.matrix_size] for i in range(len(o))], 0).cuda()
         feature = self.embed(feature)  # (N, L, D)
         aspect_v = self.aspect_embed(aspect)  # (N, L', D)
         aspect_v = aspect_v.sum(1) / aspect_v.size(1)
 
-        x = [F.tanh(conv(feature.transpose(1, 2))) for conv in self.convs1]  # [(N,Co,L), ...]*len(Ks)
-        y = [F.relu(conv(feature.transpose(1, 2)) + self.fc_aspect(aspect_v).unsqueeze(2)) for conv in self.convs2]
+        x = [F.relu(conv(feature.transpose(1, 2))) for conv in self.convs1]  # [(N,Co,L), ...]*len(Ks)
+        y = [F.relu(self.fc_aspect(aspect_v).unsqueeze(2)) for conv in self.convs2]
         # x = [i * j for i, j in zip(x, y)]
 
         # pooling method
@@ -63,11 +64,11 @@ class CNN_Gate_Aspect_Text(nn.Module):
         x0 = torch.cat(x0, 1)
         y0 = torch.cat(y0, 1)
         r = self.r(torch.cat([x0,y0],1))
-        r = F.sigmoid(r)
+        r = F.tanh(r)
         z = self.z(torch.cat([x0, y0], 1))
-        z = F.sigmoid(z)
+        z = F.tanh(z)
         _h = self._h(torch.cat([r*x0, y0], 1))
-        new_h = (1 - z) * _h + z * x0
+        new_h = (1 - z) * x0 + z * _h
         # for i in range(_h.size(0)):
         #     self.matrix[index[i]] = new_h[i]
 
