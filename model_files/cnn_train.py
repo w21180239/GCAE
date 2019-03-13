@@ -4,11 +4,15 @@ import time
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
+import numpy as np
 
+m1 = np.ndarray((1000,300))
+m2 = np.ndarray((1000,300))
 
 def train(train_iter, dev_iter, mixed_test_iter, model, args, text_field, aspect_field, sm_field, predict_iter):
+    global m1
     time_stamps = []
-
+    m1 = model.matrix.cpu().numpy()
     optimizer = torch.optim.Adagrad(model.parameters(), lr=args.lr, weight_decay=args.l2, lr_decay=args.lr_decay)
 
     steps = 0
@@ -34,7 +38,7 @@ def train(train_iter, dev_iter, mixed_test_iter, model, args, text_field, aspect
             logit, _, _ = model(feature, aspect)
 
             loss = F.cross_entropy(logit, target)
-            loss.backward()
+            loss.backward(retain_graph=True)
 
             optimizer.step()
 
@@ -74,6 +78,14 @@ def train(train_iter, dev_iter, mixed_test_iter, model, args, text_field, aspect
 
 def eval(data_iter, model, args):
     model.eval()
+    global m1,m2
+    m2 = model.matrix.cpu().numpy()
+    for i in range(1000):
+        for j in range(300):
+            if m1[i][j]!=m2[i][j]:
+                xx=1
+            else:
+                xx=2
     corrects, avg_loss = 0, 0
     loss = None
 
@@ -95,7 +107,8 @@ def eval(data_iter, model, args):
 
     size = len(data_iter.dataset)
     avg_loss = loss.data[0]/size
-    accuracy = 100.0 * corrects/size
+    xx= int(corrects.cpu().numpy())
+    accuracy = 100.0 * xx/size
     model.train()
     if args.verbose > 1:
         print('\nEvaluation - loss: {:.6f}  acc: {:.4f}%({}/{})'.format(
