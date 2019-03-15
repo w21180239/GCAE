@@ -58,6 +58,8 @@ parser.add_argument('-kernel-sizes', type=str, default='3,4,5', help='comma-sepa
 parser.add_argument('-att_dsz', type=int, default=100, help='Attention dimension [default: 100]')
 parser.add_argument('-att_method', type=str, default='concat', help='Attention method [default: concat]')
 parser.add_argument('-matrix_size', type=int, default=6000, help='神秘操作')
+parser.add_argument('-decoder_num', type=int, default=5, help='神秘操作')
+
 
 ## CNN_CNN
 parser.add_argument('-lambda_sm', type=float, default=1.0, help='Lambda weight for sentiment loss [default: 1.0]')
@@ -247,14 +249,14 @@ for t in range(n_trials):
         accuracy_trials.append([acc[0], acc[1]])   # accuracy on test, accuracy on mixed
         time_stamps_trials.append(time_stamps)
 
-print(accuracy_trials)
+# print(accuracy_trials)
 accuracy_trials = np.array(accuracy_trials)
 means = accuracy_trials.mean(0)
 # stds = accuracy_trials.std(0)
 # print('{:.2f}    {:.2f}'.format(means[0], stds[0]))
 # print('{:.2f}    {:.2f}'.format(means[1], stds[1]))
-print('{:.2f}'.format(means[0]))
-print('{:.2f}'.format(means[1]))
+# print('{:.2f}'.format(means[0]))
+# print('{:.2f}'.format(means[1]))
 with open('time_stamps', 'w') as fopen:
     for trials in time_stamps_trials:
         for acc, _ in trials:
