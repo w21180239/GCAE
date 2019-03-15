@@ -30,6 +30,7 @@ class CNN_Gate_Aspect_Text(nn.Module):
 
         self.fc1 = nn.Linear(len(Ks) * Co, C)
         self.fc_aspect = nn.Linear(args.aspect_embed_dim, Co)
+        self.aspect_re = nn.Linear(len(Ks) * Co, len(Ks) * Co)
 
         self.matrix_size = args.matrix_size
 
@@ -78,7 +79,10 @@ class CNN_Gate_Aspect_Text(nn.Module):
         x0 = [i.view(i.size(0), -1) for i in x0]
 
         x0 = torch.cat(x0, 1)
-        # x0 = F.dropout(x0)
+        # x0 = torch.cat([x0,aspect_v],1)
+        # x0 = self.aspect_re(torch.cat([x0,aspect_v],1))
+        # x0 = F.relu(x0)
+        x0 = F.dropout(x0)
         logit = self.fc1(x0)  # (N,C)
         length = x0.size(1)//self.decoder_num
         decoder_result = [list(self.decoder_list)[i](x0[:,length*i:length*(i+1)]) for i in range(len(list(self.decoder_list)))]

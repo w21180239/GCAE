@@ -19,7 +19,7 @@ def train(train_iter, dev_iter, mixed_test_iter, model, args, text_field, aspect
     model.train()
     start_time = time.time()
     dev_acc, mixed_acc = 0, 0
-    for epoch in range(1, args.epochs+1):
+    for epoch in range(1, args.epochs+1-2):
         for batch in train_iter:
             feature, aspect, target = batch.text, batch.aspect, batch.sentiment
 
@@ -72,10 +72,10 @@ def train(train_iter, dev_iter, mixed_test_iter, model, args, text_field, aspect
 
         if epoch == args.epochs:
             dev_acc, _, _ = eval(dev_iter, model, args)
-            if mixed_test_iter:
-                mixed_acc, _, _ = eval(mixed_test_iter, model, args)
-            else:
-                mixed_acc = 0.0
+            # if mixed_test_iter:
+            #     mixed_acc, _, _ = eval(mixed_test_iter, model, args)
+            # else:
+            #     mixed_acc = 0.0
 
             if args.verbose == 1:
                 delta_time = time.time() - start_time
@@ -85,11 +85,9 @@ def train(train_iter, dev_iter, mixed_test_iter, model, args, text_field, aspect
     for name, p in model.named_parameters():
         if name.split('.')[0] != 'decoder_list':
             p.requires_grad = False
-        else:
-            xx=1
     optimizer = torch.optim.Adagrad(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr, weight_decay=args.l2, lr_decay=args.lr_decay)
     for i in range(args.decoder_num):
-        print("Decoder_%d"%(i))
+        print("\nDecoder_%d"%(i))
         for epoch in range(1, args.epochs+1):
             for batch in train_iter:
                 feature, aspect, target = batch.text, batch.aspect, batch.sentiment
@@ -134,10 +132,10 @@ def train(train_iter, dev_iter, mixed_test_iter, model, args, text_field, aspect
 
             if epoch == args.epochs:
                 dev_acc, _, _ = eval(dev_iter, model, args)
-                if mixed_test_iter:
-                    mixed_acc, _, _ = eval(mixed_test_iter, model, args)
-                else:
-                    mixed_acc = 0.0
+                # if mixed_test_iter:
+                #     mixed_acc, _, _ = eval(mixed_test_iter, model, args)
+                # else:
+                #     mixed_acc = 0.0
 
                 if args.verbose == 1:
                     delta_time = time.time() - start_time
