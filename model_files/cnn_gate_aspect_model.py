@@ -20,10 +20,10 @@ class CNN_Gate_Aspect_Text(nn.Module):
         self.m = 5
 
         self.embed = nn.Embedding(V, D)
-        self.embed.weight = nn.Parameter(args.embedding, requires_grad=True)
+        self.embed.weight = nn.Parameter(args.embedding, requires_grad=False)
 
         self.aspect_embed = nn.Embedding(A, args.aspect_embed_dim)
-        self.aspect_embed.weight = nn.Parameter(args.aspect_embedding, requires_grad=True)
+        self.aspect_embed.weight = nn.Parameter(args.aspect_embedding, requires_grad=False)
 
         self.convs1 = nn.ModuleList([nn.Conv1d(D, Co, K) for K in Ks])
         self.convs2 = nn.ModuleList([nn.Conv1d(D, Co, K) for K in Ks])
@@ -44,8 +44,9 @@ class CNN_Gate_Aspect_Text(nn.Module):
         for _ in range(self.m):
             self.mix_2.append(nn.Linear(int((D+len(Ks) * Co)/self.m),int((len(Ks) * Co)/self.m)).cuda())
         self.decoder_num = args.decoder_num
-        hidden_width = [300 for i in range(1,args.decoder_num+1)]
+        hidden_width = [50*i for i in range(1,args.decoder_num+1)]
         self.decoder_list = nn.ModuleList([nn.Sequential(nn.Linear(len(Ks) * Co//self.decoder_num, h),nn.ReLU6(),nn.Linear(h,C)).cuda() for h in hidden_width])
+        self.reconstruct = nn.Sequential(nn.Linear(len(Ks) * Co,500),nn.ReLU(),nn.Linear(500,D))
 
 
 
@@ -59,8 +60,6 @@ class CNN_Gate_Aspect_Text(nn.Module):
 
         x = [F.relu(conv(feature.transpose(1, 2))) for conv in self.convs1]  # [(N,Co,L), ...]*len(Ks)
         y = [self.fc_aspect(aspect_v).unsqueeze(2) for conv in self.convs2]
-        # x = [i * j for i, j in zip(x, y)]
-        # pooling method
         x0 = [F.max_pool1d(i, i.size(2)).squeeze(2) for i in x]  # [(N,Co), ...]*len(Ks)
         x0 = [i.view(i.size(0), -1) for i in x0]
         y0 = [F.max_pool1d(i, i.size(2)).squeeze(2) for i in y]  # [(N,Co), ...]*len(Ks)
@@ -74,14 +73,19 @@ class CNN_Gate_Aspect_Text(nn.Module):
         _h = self._h(torch.cat([r*x0, y0], 1))
         x0 = (1 - z) * x0 + z * _h
 
+        # x = [F.tanh(conv(feature.transpose(1, 2))) for conv in self.convs1]  # [(N,Co,L), ...]*len(Ks)
+        # y = [F.relu(conv(feature.transpose(1, 2)) + self.fc_aspect(aspect_v).unsqueeze(2)) for conv in self.convs2]
+        # x = [i*j for i, j in zip(x, y)]
+        #
+        # # pooling method
         # x0 = [F.max_pool1d(i, i.size(2)).squeeze(2) for i in x]  # [(N,Co), ...]*len(Ks)
         # x0 = [i.view(i.size(0), -1) for i in x0]
         #
         # x0 = torch.cat(x0, 1)
-
+        re_aspect = self.reconstruct(x0)
         x0 = F.dropout(x0)
         logit = self.fc1(x0)  # (N,C)
         length = x0.size(1)//self.decoder_num
         decoder_result = [list(self.decoder_list)[i](x0[:,length*i:length*(i+1)]) for i in range(len(list(self.decoder_list)))]
         # decoder_result = [decoder(x0[:,]) for decoder in list(self.decoder_list)]
-        return logit, x, y,decoder_result
+        return logit, x, y,decoder_result,re_aspect,aspect_v

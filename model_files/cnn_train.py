@@ -13,13 +13,13 @@ def train(train_iter, dev_iter, mixed_test_iter, model, args, text_field, aspect
     global m1
     time_stamps = []
     # m1 = model.matrix.cpu().numpy()
-    optimizer = torch.optim.Adagrad(model.parameters(), lr=args.lr, weight_decay=args.l2, lr_decay=args.lr_decay)
+    optimizer = torch.optim.Adagrad(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr, weight_decay=args.l2, lr_decay=args.lr_decay)
 
     steps = 0
     model.train()
     start_time = time.time()
     dev_acc, mixed_acc = 0, 0
-    for epoch in range(1, args.epochs+1-2):
+    for epoch in range(1, args.epochs+1):
         for batch in train_iter:
             feature, aspect, target = batch.text, batch.aspect, batch.sentiment
 
@@ -35,13 +35,21 @@ def train(train_iter, dev_iter, mixed_test_iter, model, args, text_field, aspect
                 feature, aspect, target = feature.cuda(), aspect.cuda(), target.cuda()
 
             optimizer.zero_grad()
-            logit, _, _,decode_list = model(feature, aspect)
+            logit, _, _,decode_list,re,ori = model(feature, aspect)
 
             loss = F.cross_entropy(logit, target)
+            ss = F.mse_loss(re, ori)
+            loss = loss+args.support*ss
             loss.backward(retain_graph=True)
 
             optimizer.step()
             optimizer.zero_grad()
+
+            # ss = F.mse_loss(re, ori)
+            # ss.backward(retain_graph=True)
+            #
+            # optimizer.step()
+            # optimizer.zero_grad()
 
 
             # for output in decode_list:
@@ -88,7 +96,7 @@ def train(train_iter, dev_iter, mixed_test_iter, model, args, text_field, aspect
     optimizer = torch.optim.Adagrad(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr, weight_decay=args.l2, lr_decay=args.lr_decay)
     for i in range(args.decoder_num):
         print("\nDecoder_%d"%(i))
-        for epoch in range(1, args.epochs+1):
+        for epoch in range(1, args.decoder_epoch+1):
             for batch in train_iter:
                 feature, aspect, target = batch.text, batch.aspect, batch.sentiment
 
@@ -104,7 +112,7 @@ def train(train_iter, dev_iter, mixed_test_iter, model, args, text_field, aspect
                     feature, aspect, target = feature.cuda(), aspect.cuda(), target.cuda()
 
                 optimizer.zero_grad()
-                logit, _, _,decode_list = model(feature, aspect)
+                logit, _, _,decode_list,re,ori = model(feature, aspect)
 
                 ll = F.cross_entropy(decode_list[i], target)
                 ll.backward(retain_graph=True)
@@ -130,7 +138,7 @@ def train(train_iter, dev_iter, mixed_test_iter, model, args, text_field, aspect
                     save_path = '{}_steps{}.pt'.format(save_prefix, steps)
                     torch.save(model, save_path)
 
-            if epoch == args.epochs:
+            if epoch == args.decoder_epoch:
                 dev_acc, _, _ = eval(dev_iter, model, args)
                 # if mixed_test_iter:
                 #     mixed_acc, _, _ = eval(mixed_test_iter, model, args)
@@ -169,7 +177,7 @@ def eval(data_iter, model, args):
         if args.cuda:
             feature, aspect, target = feature.cuda(), aspect.cuda(), target.cuda()
 
-        logit, pooling_input, relu_weights,decode_list = model(feature, aspect)
+        logit, pooling_input, relu_weights,decode_list,re,ori = model(feature, aspect)
         loss = F.cross_entropy(logit, target, size_average=False)
         avg_loss += loss.data[0]
         corrects += (torch.max(logit, 1)

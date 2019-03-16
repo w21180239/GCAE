@@ -28,6 +28,8 @@ parser.add_argument('-epochs', type=int, default=30, help='number of epochs for 
 parser.add_argument('-batch-size', type=int, default=32, help='batch size for training [default: 32]')
 parser.add_argument('-grad_clip', type=float, default=5, help='max value of gradients')
 parser.add_argument('-lr_decay', type=float, default=0, help='learning rate decay')
+parser.add_argument('-support', type=float, default=5e-3, help='')
+
 
 # logging
 parser.add_argument('-log-interval',  type=int, default=10,   help='how many steps to wait before logging training status [default: 10]')
@@ -59,6 +61,8 @@ parser.add_argument('-att_dsz', type=int, default=100, help='Attention dimension
 parser.add_argument('-att_method', type=str, default='concat', help='Attention method [default: concat]')
 parser.add_argument('-matrix_size', type=int, default=6000, help='神秘操作')
 parser.add_argument('-decoder_num', type=int, default=5, help='神秘操作')
+parser.add_argument('-decoder_epoch', type=int, default=5, help='神秘操作')
+
 
 
 ## CNN_CNN
