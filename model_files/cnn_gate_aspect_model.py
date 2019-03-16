@@ -44,7 +44,7 @@ class CNN_Gate_Aspect_Text(nn.Module):
         for _ in range(self.m):
             self.mix_2.append(nn.Linear(int((D+len(Ks) * Co)/self.m),int((len(Ks) * Co)/self.m)).cuda())
         self.decoder_num = args.decoder_num
-        hidden_width = [50*i for i in range(1,args.decoder_num+1)]
+        hidden_width = [300 for i in range(1,args.decoder_num+1)]
         self.decoder_list = nn.ModuleList([nn.Sequential(nn.Linear(len(Ks) * Co//self.decoder_num, h),nn.ReLU6(),nn.Linear(h,C)).cuda() for h in hidden_width])
 
 
