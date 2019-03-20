@@ -150,6 +150,9 @@ def train(train_iter, dev_iter, mixed_test_iter, model, args, text_field, aspect
                     # print('\n{:.4f} - {:.4f} - {:.4f}'.format(dev_acc, mixed_acc, delta_time))
                     time_stamps.append((dev_acc, delta_time))
                     # print()
+    for name, p in model.named_parameters():
+        if name.split('.')[0] != 'aspect_embed':
+            p.requires_grad = True
     return (dev_acc, mixed_acc), time_stamps
 
 
@@ -157,12 +160,12 @@ def eval(data_iter, model, args):
     model.eval()
     global m1,m2
     # m2 = model.matrix.cpu().numpy()
-    for i in range(1000):
-        for j in range(300):
-            if m1[i][j]!=m2[i][j]:
-                xx=1
-            else:
-                xx=2
+    # for i in range(1000):
+    #     for j in range(300):
+    #         if m1[i][j]!=m2[i][j]:
+    #             xx=1
+    #         else:
+    #             xx=2
     corrects, avg_loss = 0, 0
     correct_list = [0 for a in range(args.decoder_num)]
     loss = None
