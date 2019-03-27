@@ -35,11 +35,12 @@ def train(train_iter, dev_iter, mixed_test_iter, model, args, text_field, aspect
                 feature, aspect, target = feature.cuda(), aspect.cuda(), target.cuda()
 
             optimizer.zero_grad()
-            logit, _, _,decode_list,re,ori = model(feature, aspect)
+            logit, _, _,decode_list,re,ori,reconstruct_feature,feature = model(feature, aspect)
 
             loss = F.cross_entropy(logit, target)
             ss = F.mse_loss(re, ori)
-            loss = loss+args.support*ss
+            hh = F.mse_loss(reconstruct_feature,feature)
+            loss = loss+args.support*ss+args.support*hh
             loss.backward(retain_graph=True)
 
             optimizer.step()
@@ -84,7 +85,9 @@ def train(train_iter, dev_iter, mixed_test_iter, model, args, text_field, aspect
             #     mixed_acc, _, _ = eval(mixed_test_iter, model, args)
             # else:
             #     mixed_acc = 0.0
-
+            if dev_acc<76:
+                print("Accuracy is too low, give up, please try again!")
+                return (dev_acc, mixed_acc), time_stamps
             if args.verbose == 1:
                 delta_time = time.time() - start_time
                 # print('\n{:.4f} - {:.4f} - {:.4f}'.format(dev_acc, mixed_acc, delta_time))
@@ -112,7 +115,7 @@ def train(train_iter, dev_iter, mixed_test_iter, model, args, text_field, aspect
                     feature, aspect, target = feature.cuda(), aspect.cuda(), target.cuda()
 
                 optimizer.zero_grad()
-                logit, _, _,decode_list,re,ori = model(feature, aspect)
+                logit, _, _,decode_list,re,ori,reconstruct_feature,feature = model(feature, aspect)
 
                 ll = F.cross_entropy(decode_list[i], target)
                 ll.backward(retain_graph=True)
@@ -180,7 +183,7 @@ def eval(data_iter, model, args):
         if args.cuda:
             feature, aspect, target = feature.cuda(), aspect.cuda(), target.cuda()
 
-        logit, pooling_input, relu_weights,decode_list,re,ori = model(feature, aspect)
+        logit, pooling_input, relu_weights,decode_list,re,ori,reconstruct_feature,feature = model(feature, aspect)
         loss = F.cross_entropy(logit, target, size_average=False)
         avg_loss += loss.data[0]
         corrects += (torch.max(logit, 1)
