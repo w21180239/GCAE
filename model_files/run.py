@@ -14,7 +14,7 @@ from cnn_gate_aspect_model_atsa import CNN_Gate_Aspect_Text as CNN_Gate_Aspect_T
 import mydatasets as mydatasets
 from getsemeval import get_semeval, get_semeval_target, read_yelp
 import cnn_train
-import random
+
 parser = argparse.ArgumentParser(description='CNN text classificer')
 f=open('../acsa-restaurant-2014/acsa_train.json')
 f = f.read()
@@ -28,8 +28,6 @@ parser.add_argument('-epochs', type=int, default=30, help='number of epochs for 
 parser.add_argument('-batch-size', type=int, default=32, help='batch size for training [default: 32]')
 parser.add_argument('-grad_clip', type=float, default=5, help='max value of gradients')
 parser.add_argument('-lr_decay', type=float, default=0, help='learning rate decay')
-parser.add_argument('-support', type=float, default=5e-3, help='')
-
 
 # logging
 parser.add_argument('-log-interval',  type=int, default=10,   help='how many steps to wait before logging training status [default: 10]')
@@ -61,8 +59,6 @@ parser.add_argument('-att_dsz', type=int, default=100, help='Attention dimension
 parser.add_argument('-att_method', type=str, default='concat', help='Attention method [default: concat]')
 parser.add_argument('-matrix_size', type=int, default=6000, help='神秘操作')
 parser.add_argument('-decoder_num', type=int, default=5, help='神秘操作')
-parser.add_argument('-decoder_epoch', type=int, default=5, help='神秘操作')
-
 
 
 ## CNN_CNN
@@ -95,65 +91,12 @@ good_lap_attributes = ['battery#operation_performance', 'battery#quality', 'comp
 
 torch.cuda.set_device(args.gpu_id)
 
-def load_semeval_data(flag,flag2,text_field, as_field, sm_field, years, aspects, **kargs):
+def load_semeval_data(text_field, as_field, sm_field, years, aspects, **kargs):
     if not args.atsa:
         semeval_train, semeval_test = get_semeval(years, aspects, args.r_l, args.use_attribute)
     else:
         semeval_train, semeval_test = get_semeval_target(years, args.r_l)
 
-    hh={}
-    for i in semeval_train:
-        if i['sentence'] not in hh:
-            hh[i['sentence']] = 1
-        else:
-            hh[i['sentence']]+=1
-    multi_train = []
-    single_train = []
-    for i in semeval_train:
-        if hh[i['sentence']] > 1:
-            multi_train.append(i)
-        else:
-            single_train.append(i)
-    count = 0
-    to = 0
-    for i in hh.values():
-        if i>1:
-            count+=1
-            to+=i
-    rate = count/len(hh)
-    rate2 = to/len(hh)
-    if flag == 1:
-        semeval_train = multi_train
-    elif flag == 2:
-        semeval_train = single_train
-    elif flag == 3:
-        semeval_train.extend(single_train)
-    hh={}
-    for i in semeval_test:
-        if i['sentence'] not in hh:
-            hh[i['sentence']] = 1
-        else:
-            hh[i['sentence']]+=1
-    multi_test = []
-    single_test = []
-    for i in semeval_test:
-        if hh[i['sentence']] > 1:
-            multi_test.append(i)
-        else:
-            single_test.append(i)
-    count = 0
-    to = 0
-    for i in hh.values():
-        if i>1:
-            count+=1
-            to+=i
-    rate = count/len(hh)
-    rate2 = to/len(hh)
-    random.shuffle(semeval_test)
-    if flag2==1:
-        semeval_test = multi_test
-    elif flag2 == 2:
-        semeval_test = single_test
     predict_test = [{"aspect": "food",
                      "sentiment": "positive",
                      "sentence": "good food in cute - though a bit dank - little hangout, but service terrible"},
@@ -200,7 +143,7 @@ aspects = None
 if args.r_l == 'lap' and args.use_attribute:
     aspects = good_lap_attributes
 
-train_iter, test_iter, mixed_test_iter, predict_iter = load_semeval_data(0,0,text_field, as_field, sm_field, years, aspects,
+train_iter, test_iter, mixed_test_iter, predict_iter = load_semeval_data(text_field, as_field, sm_field, years, aspects,
                                                           device=args.device, repeat=False)
 
 print('# aspects: {}'.format(len(as_field.vocab.stoi)))
@@ -303,14 +246,6 @@ for t in range(n_trials):
     else:
         print()
         acc, time_stamps = train.train(train_iter, test_iter, mixed_test_iter, model, args, text_field, as_field, sm_field, predict_iter)
-        # train_iter, test_iter, mixed_test_iter, predict_iter = load_semeval_data(1,0, text_field, as_field, sm_field,
-        #                                                                          years, aspects,
-        #                                                                          device=args.device, repeat=False)
-        # args.epochs = 1
-        # args.lr = 1e-5
-        # args.decoder_epoch = 1
-        # acc, time_stamps = train.train(train_iter, test_iter, mixed_test_iter, model, args, text_field, as_field,
-        #                                sm_field, predict_iter)
         accuracy_trials.append([acc[0], acc[1]])   # accuracy on test, accuracy on mixed
         time_stamps_trials.append(time_stamps)
 
