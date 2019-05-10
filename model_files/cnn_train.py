@@ -93,8 +93,8 @@ def bagging_eval(data_iter, model,num, args):
     now_accuracy = 100.0 * xx/size
     model.train()
     if args.verbose:
-        print('\nEvaluation   bagging_loss: {:.6f}  bagging_acc: {:.4f}%({}/{}   now_loss: {:.6f}  now_acc: {:.4f}%({}/{})'.format(
-            final_avg_loss, final_accuracy, final_corrects, size,now_avg_loss, now_accuracy, now_corrects, size))
+        print('\nEvaluation   bagging_loss: {:.6f}  bagging_acc: {:.4f}%({}/{}   now_loss: {:.6f}  now_acc: {:.4f}%({}/{})  num:{}'.format(
+            final_avg_loss, final_accuracy, final_corrects, size,now_avg_loss, now_accuracy, now_corrects, size,num))
     return final_accuracy
 
 def generate_bagging_iter(train_iter, dev_iter,model, args):
@@ -212,7 +212,7 @@ def train(train_iter, dev_iter, mixed_test_iter, model, args, text_field, aspect
                 time_stamps.append((dev_acc, delta_time))
                 # print()
     train_loader, dev_loader = generate_bagging_iter(train_iter,dev_iter,model,args)
-    bagging_model = AttentionBagging(300,4,100,0.5,True)
+    bagging_model = AttentionBagging(300,4,20,0.3,True)
     if args.cuda:
         bagging_model.cuda()
     bagging_train(train_loader,dev_loader,bagging_model,args)
