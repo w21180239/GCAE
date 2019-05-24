@@ -37,7 +37,7 @@ class CNN_Gate_Aspect_Text(nn.Module):
         self.mix_2 = []
         for _ in range(self.m):
             self.mix_2.append(nn.Linear(int((D+len(Ks) * Co)/self.m),int((len(Ks) * Co)/self.m)).cuda())
-        self.attention_bagging = AttentionBagging(len(Ks) * Co, C, 100, 0.5,True)
+        # self.attention_bagging = AttentionBagging(len(Ks) * Co, C, 100, 0.5,True)
 
 
 
@@ -70,6 +70,6 @@ class CNN_Gate_Aspect_Text(nn.Module):
 
         x0 = torch.cat(x0, 1)
         logit = self.fc1(x0)  # (N,C)
-        bagging,output = self.attention_bagging(x0)
+        # bagging,output = self.attention_bagging(x0)
 
-        return logit, x, y,output,bagging
+        return logit,x0
